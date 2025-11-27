@@ -18,12 +18,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
-    ];
+    protected $fillable = ['name', 'email', 'password', 'role', 'phone', 'avatar', 'active'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -46,5 +41,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+    /**
+     * Get the sales made by the user.
+     */
+    public function sales() {
+        return $this->hasMany(Sale::class, 'seller_id');
+    }
+
+    /**
+     * Get the expenses created by the user.
+     */
+    public function expenses() {
+        return $this->hasMany(Expense::class, 'created_by');
+    }
+
+    /**
+     * Check if the user has an admin role.
+     */
+    public function isAdmin() {
+        return $this->role === 'admin';
     }
 }

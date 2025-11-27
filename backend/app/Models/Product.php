@@ -8,42 +8,36 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     use HasFactory;
-
-    protected $fillable = [
-        'name',
-        'description',
-        'prix_achat',
-        'prix_vente',
-        'stock',
-        'image',
-        'fournisseur_id',
+protected $fillable = [
+        'name', 'code', 'description', 'category_id', 'supplier_id',
+        'prix_achat', 'prix_vente', 'stock', 'min_stock_alert', 'image', 'active'
     ];
 
     protected $casts = [
         'prix_achat' => 'decimal:2',
         'prix_vente' => 'decimal:2',
-        'stock' => 'integer',
     ];
 
-    public function fournisseur()
-    {
-        return $this->belongsTo(Fournisseur::class);
+    public function category() {
+        return $this->belongsTo(ProductCategorie::class);
     }
 
-    public function transactions()
-    {
-        return $this->belongsToMany(Transaction::class, 'product_transaction')
-            ->withPivot('quantity')
-            ->withTimestamps();
+    public function supplier() {
+        return $this->belongsTo(Supplier::class);
     }
 
-    public function getStockStatusAttribute()
-    {
-        if ($this->stock <= 0) {
-            return 'rupture';
-        } elseif ($this->stock <= 5) {
-            return 'bas';
-        }
-        return 'normal';
+    public function saleItems() {
+        return $this->hasMany(SaleItem::class);
+    }
+
+    public function getMarginAttribute() {
+        if ($this->prix_achat == 0) return 0;
+        return round((($this->prix_vente - $this->prix_achat) / $this->prix_achat) * 100, 2);
+    }
+
+    public function getStockStatusAttribute() {
+        if ($this->stock <= 0) return 'danger';
+        if ($this->stock <= $this->min_stock_alert) return 'warning';
+        return 'ok';
     }
 } 
