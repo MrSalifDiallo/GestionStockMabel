@@ -5,7 +5,8 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Product;
 use App\Models\Fournisseur;
-
+use App\Models\ProductCategorie;
+use App\Models\Supplier;
 class ProductSeeder extends Seeder
 {
     /**
@@ -13,39 +14,29 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
-        $fournisseurA = Fournisseur::where('name', 'Fournisseur A')->first();
-        $fournisseurB = Fournisseur::where('name', 'Fournisseur B')->first();
+        $robes = ProductCategorie::where('name', 'Robes')->first();
+        $boubous = ProductCategorie::where('name', 'Boubous')->first();
+        $tuniques = ProductCategorie::where('name', 'Tuniques')->first();
+        $chemises = ProductCategorie::where('name', 'Chemises')->first();
+        $accessories = ProductCategorie::where('name', 'Accessoires')->first();
+        $supplier1 = Supplier::first();
+        $supplier2 = Supplier::skip(1)->first();
 
-        if ($fournisseurA && $fournisseurB) {
-            Product::create([
-                'name' => 'Chaussures de Sport',
-                'description' => 'Chaussures confortables pour la course à pied.',
-                'prix_achat' => 50.00,
-                'prix_vente' => 80.00,
-                'stock' => 100,
-                'image' => 'https://example.com/chaussures.jpg',
-                'fournisseur_id' => $fournisseurA->id,
-            ]);
+        $products = [
+            ['name' => 'Robe Ankara', 'code' => 'R_ANK_01', 'category_id' => $robes->id, 'supplier_id' => $supplier1->id, 'prix_achat' => 35000, 'prix_vente' => 85000, 'stock' => 12],
+            ['name' => 'Robe Dentelle', 'code' => 'R_DEN_01', 'category_id' => $robes->id, 'supplier_id' => $supplier1->id, 'prix_achat' => 40000, 'prix_vente' => 95000, 'stock' => 8],
+            ['name' => 'Boubou Bazin', 'code' => 'B_BAZ_01', 'category_id' => $boubous->id, 'supplier_id' => $supplier1->id, 'prix_achat' => 50000, 'prix_vente' => 120000, 'stock' => 8],
+            ['name' => 'Boubou Wax', 'code' => 'B_WAX_01', 'category_id' => $boubous->id, 'supplier_id' => $supplier2->id, 'prix_achat' => 45000, 'prix_vente' => 110000, 'stock' => 5],
+            ['name' => 'Tunique Wax', 'code' => 'T_WAX_01', 'category_id' => $tuniques->id, 'supplier_id' => $supplier1->id, 'prix_achat' => 20000, 'prix_vente' => 65000, 'stock' => 3],
+            ['name' => 'Tunique Ankara', 'code' => 'T_ANK_01', 'category_id' => $tuniques->id, 'supplier_id' => $supplier2->id, 'prix_achat' => 18000, 'prix_vente' => 60000, 'stock' => 10],
+            ['name' => 'Chemise Homme', 'code' => 'C_HOM_01', 'category_id' => $chemises->id, 'supplier_id' => $supplier2->id, 'prix_achat' => 15000, 'prix_vente' => 35000, 'stock' => 0],
+            ['name' => 'Chemise Femme', 'code' => 'C_FEM_01', 'category_id' => $chemises->id, 'supplier_id' => $supplier1->id, 'prix_achat' => 17000, 'prix_vente' => 40000, 'stock' => 15],
+            ['name' => 'Accessoires Mix', 'code' => 'A_MIX_01', 'category_id' => $accessories->id, 'supplier_id' => $supplier2->id, 'prix_achat' => 5000, 'prix_vente' => 15000, 'stock' => 25],
+            ['name' => 'Sac à Main', 'code' => 'A_SAC_01', 'category_id' => $accessories->id, 'supplier_id' => $supplier1->id, 'prix_achat' => 15000, 'prix_vente' => 50000, 'stock' => 7],
+        ];
 
-            Product::create([
-                'name' => 'Sac à Dos Tactique',
-                'description' => 'Sac à dos robuste et multifonctionnel.',
-                'prix_achat' => 30.00,
-                'prix_vente' => 60.00,
-                'stock' => 50,
-                'image' => 'https://example.com/sacados.jpg',
-                'fournisseur_id' => $fournisseurB->id,
-            ]);
-
-            Product::create([
-                'name' => 'Casque Audio Bluetooth',
-                'description' => 'Casque avec excellente qualité sonore et suppression du bruit.',
-                'prix_achat' => 70.00,
-                'prix_vente' => 120.00,
-                'stock' => 30,
-                'image' => 'https://example.com/casque.jpg',
-                'fournisseur_id' => $fournisseurA->id,
-            ]);
+        foreach ($products as $prod) {
+            Product::create([...$prod, 'min_stock_alert' => 5]);
         }
     }
 } 
