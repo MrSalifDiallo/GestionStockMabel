@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 
 // Routes d'authentification
-Route::get('/', function () {
+/*Route::get('/', function () {
     return view('auth.login');
 })->name('login');
 
@@ -20,6 +20,6 @@ Route::middleware('auth')->group(function () {
 });
 
 // Rediriger toutes les routes web vers le frontend Vue.js
-Route::get('/{any}', function () {
+/*Route::get('/{any}', function () {
     return redirect('http://localhost:5173');
-})->where('any', '.*');
+})->where('any', '.*');*/

@@ -1,39 +1,53 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\FournisseurController;
+use App\Http\Controllers\{
+    AuthController,
+    ProductController,
+    SaleController,
+    ClientController,
+    ExpenseController,
+    SupplierController,
+    DashboardController,
+};
 
-// Routes publiques
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+// Auth routes (sans auth)
+//All is prefix is Api in config/cors.php
+Route::post('auth/register', [AuthController::class, 'register']);
+Route::post('auth/login', [AuthController::class, 'login']);
 
 // Routes protégées
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'user']);
+    // Auth
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/user', [AuthController::class, 'user']);
 
-    // Routes des produits
+    // Products
     Route::apiResource('products', ProductController::class);
     Route::get('products/stock-alerts', [ProductController::class, 'stockAlerts']);
 
-    // Routes des transactions
-    Route::apiResource('transactions', TransactionController::class);
-    Route::get('transactions/stats', [TransactionController::class, 'stats']);
+    // Sales
+    Route::apiResource('sales', SaleController::class);
 
-    // Routes des fournisseurs (Admin uniquement)
+    // Clients
+    Route::apiResource('clients', ClientController::class);
+
+    // Expenses
+    Route::apiResource('expenses', ExpenseController::class);
+
+    // Suppliers (Admin only)
     Route::middleware('role:admin')->group(function () {
-        Route::apiResource('fournisseurs', FournisseurController::class);
+        Route::apiResource('suppliers', SupplierController::class);
     });
 
-    // Routes de gestion des utilisateurs (Admin uniquement)
+    // Users (Admin only)
     Route::middleware('role:admin')->group(function () {
         Route::get('users', [AuthController::class, 'index']);
         Route::post('users', [AuthController::class, 'store']);
         Route::put('users/{user}', [AuthController::class, 'update']);
         Route::delete('users/{user}', [AuthController::class, 'destroy']);
     });
-}); 
+
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index']);   
+});
