@@ -4,71 +4,72 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
-    public function index()
-    {
-        $products = Product::all();
-        return response()->json($products);
+    public function index(Request $request) {
+        $query = Product::with(['category', 'supplier']);
+
+        if ($request->has('category')) {
+            $query->where('category_id', $request->category);
+        }
+        if ($request->has('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+        if ($request->has('stock_status')) {
+            $status = $request->stock_status;
+            if ($status === 'ok') {
+                $query->whereRaw('stock > min_stock_alert');
+            } elseif ($status === 'warning') {
+                $query->whereRaw('stock <= min_stock_alert AND stock > 0');
+            } elseif ($status === 'danger') {
+                $query->where('stock', '<=', 0);
+            }
+        }
+
+        return response()->json($query->get());
     }
 
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+    public function show(Product $product) {
+        return response()->json($product->load(['category', 'supplier']));
+    }
+
+    public function store(Request $request) {
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'code' => 'nullable|unique:products',
+            'category_id' => 'required|exists:product_categories,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'prix_achat' => 'required|numeric|min:0',
             'prix_vente' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
-            'image' => 'nullable|url|max:255',
+            'min_stock_alert' => 'integer|min:0',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $product = Product::create($request->all());
+        $product = Product::create($validated);
         return response()->json($product, 201);
     }
 
-    public function show(Product $product)
-    {
-        return response()->json($product);
-    }
-
-    public function update(Request $request, Product $product)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'string|max:255',
-            'description' => 'nullable|string',
+    public function update(Request $request, Product $product) {
+        $validated = $request->validate([
+            'name' => 'string',
             'prix_achat' => 'numeric|min:0',
             'prix_vente' => 'numeric|min:0',
             'stock' => 'integer|min:0',
-            'image' => 'nullable|url|max:255',
+            'min_stock_alert' => 'integer|min:0',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $product->update($request->all());
+        $product->update($validated);
         return response()->json($product);
     }
 
-    public function destroy(Product $product)
-    {
+    public function destroy(Product $product) {
         $product->delete();
         return response()->json(null, 204);
     }
 
-    public function stockAlerts()
-    {
-        $lowStockThreshold = 5; // Define your low stock threshold
-        $products = Product::where('stock', '<=', $lowStockThreshold)
-                           ->orderBy('stock', 'asc')
-                           ->get();
+    public function stockAlerts() {
+        $products = Product::where('stock', '<=', 5)->orderBy('stock', 'asc')->get();
         return response()->json($products);
     }
-} 
+}
