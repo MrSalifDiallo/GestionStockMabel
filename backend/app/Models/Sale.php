@@ -39,4 +39,5 @@ class Sale extends Model
         $count = self::whereDate('created_at', today())->count() + 1;
         return $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
     }
+    
 }

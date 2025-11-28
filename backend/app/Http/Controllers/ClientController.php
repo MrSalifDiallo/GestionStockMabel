@@ -7,51 +7,93 @@ use Illuminate\Http\Request;
 
 class ClientController extends Controller
 {
-    public function index(Request $request) {
-        $query = Client::query();
+    public function index(Request $request)
+    {
+        $query = Client::with('sales');
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('phone', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('phone', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%');
+            });
         }
-        if ($request->has('has_due')) {
-            $query->whereRaw('(SELECT SUM(amount_due) FROM sales WHERE client_id = clients.id) > 0');
+
+        if ($request->has('with_due') && $request->with_due == 'true') {
+            $query->whereHas('sales', function($q) {
+                $q->where('amount_due', '>', 0);
+            });
         }
 
-        return response()->json($query->get());
+        $perPage = $request->get('per_page', 20);
+        $clients = $query->orderBy('name')->paginate($perPage);
+
+        // Ajouter les attributs calculés
+        $clients->getCollection()->each(function($client) {
+            $client->total_orders = $client->total_purchased;
+            $client->total_paid = $client->total_paid;
+            $client->total_due = $client->total_due;
+            $client->last_purchase = $client->sales()->latest('sale_date')->first()?->sale_date;
+        });
+
+        return response()->json($clients);
     }
 
-    public function show(Client $client) {
-        return response()->json($client->load('sales'));
-    }
-
-    public function store(Request $request) {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'phone' => 'nullable|string',
-            'email' => 'nullable|email|unique:clients',
-            'address' => 'nullable|string',
-            'measurements' => 'nullable|string',
-        ]);
-
-        $client = Client::create($validated);
-        return response()->json($client, 201);
-    }
-
-    public function update(Request $request, Client $client) {
-        $validated = $request->validate([
-            'name' => 'string',
-            'phone' => 'string',
-            'address' => 'string',
-            'measurements' => 'string',
-        ]);
-
-        $client->update($validated);
+    public function show(Client $client)
+    {
+        $client->load('sales.items.product');
+        $client->total_orders = $client->total_purchased;
+        $client->total_paid = $client->total_paid;
+        $client->total_due = $client->total_due;
+        $client->last_purchase = $client->sales()->latest('sale_date')->first()?->sale_date;
+        
         return response()->json($client);
     }
 
-    public function destroy(Client $client) {
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:500',
+            'measurements' => 'nullable|string',
+            'active' => 'boolean',
+        ]);
+
+        $client = Client::create($validated);
+
+        return response()->json($client, 201);
+    }
+
+    public function update(Request $request, Client $client)
+    {
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:500',
+            'measurements' => 'nullable|string',
+            'active' => 'boolean',
+        ]);
+
+        $client->update($validated);
+
+        return response()->json($client);
+    }
+
+    public function destroy(Client $client)
+    {
+        // Vérifier si le client a des ventes
+        if ($client->sales()->count() > 0) {
+            return response()->json([
+                'message' => 'Impossible de supprimer ce client car il a des ventes associées'
+            ], 422);
+        }
+
         $client->delete();
+
         return response()->json(null, 204);
     }
 }

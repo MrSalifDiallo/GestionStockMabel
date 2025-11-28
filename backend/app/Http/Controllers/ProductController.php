@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -27,7 +28,8 @@ class ProductController extends Controller
             }
         }
 
-        return response()->json($query->get());
+        $perPage = $request->get('per_page', 20);
+        return response()->json($query->paginate($perPage));
     }
 
     public function show(Product $product) {
@@ -44,10 +46,16 @@ class ProductController extends Controller
             'prix_vente' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'min_stock_alert' => 'integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+            $validated['image'] = $imagePath;
+        }
+
         $product = Product::create($validated);
-        return response()->json($product, 201);
+        return response()->json($product->load(['category', 'supplier']), 201);
     }
 
     public function update(Request $request, Product $product) {
@@ -57,10 +65,20 @@ class ProductController extends Controller
             'prix_vente' => 'numeric|min:0',
             'stock' => 'integer|min:0',
             'min_stock_alert' => 'integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        if ($request->hasFile('image')) {
+            // Supprimer l'ancienne image si elle existe
+            if ($product->image && Storage::disk('public')->exists($product->image)) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $imagePath = $request->file('image')->store('products', 'public');
+            $validated['image'] = $imagePath;
+        }
+
         $product->update($validated);
-        return response()->json($product);
+        return response()->json($product->load(['category', 'supplier']));
     }
 
     public function destroy(Product $product) {

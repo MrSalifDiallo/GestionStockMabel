@@ -20,7 +20,8 @@ class ExpenseController extends Controller
             $query->whereDate('expense_date', '<=', $request->date_to);
         }
 
-        return response()->json($query->latest('expense_date')->paginate(20));
+        $perPage = $request->get('per_page', 20);
+        return response()->json($query->latest('expense_date')->paginate($perPage));
     }
 
     public function store(Request $request) {

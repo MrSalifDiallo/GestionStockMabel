@@ -12,7 +12,8 @@ class ExpenseCategorieController extends Controller
      */
     public function index()
     {
-        //
+        $categories = ExpenseCategorie::where('active', true)->orderBy('name')->get();
+        return response()->json($categories);
     }
 
     /**

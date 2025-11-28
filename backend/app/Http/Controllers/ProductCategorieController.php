@@ -12,7 +12,8 @@ class ProductCategorieController extends Controller
      */
     public function index()
     {
-        //
+        $categories = ProductCategorie::where('active', true)->orderBy('name')->get();
+        return response()->json($categories);
     }
 
     /**

@@ -23,7 +23,8 @@ class SaleController extends Controller
             $query->whereDate('sale_date', '<=', $request->date_to);
         }
 
-        return response()->json($query->latest()->paginate(20));
+        $perPage = $request->get('per_page', 20);
+        return response()->json($query->latest()->paginate($perPage));
     }
 
     public function show(Sale $sale) {
@@ -68,9 +69,9 @@ class SaleController extends Controller
 
             $sale = Sale::create([
                 'invoice_number' => Sale::generateInvoiceNumber(),
-                'seller_id' => $request->user()->id,
-                'client_id' => $validated['client_id'],
-                'client_name' => $validated['client_name'],
+                'seller_id' => auth()->check() ? auth()->id() : null,
+                'client_id' => $validated['client_id'] ?? null,
+                'client_name' => $validated['client_name'] ?? null,
                 'sale_date' => now(),
                 'subtotal' => $subtotal,
                 'discount_amount' => $autoDiscount,
@@ -78,7 +79,7 @@ class SaleController extends Controller
                 'amount_paid' => $validated['amount_paid'],
                 'amount_due' => $amountDue,
                 'payment_status' => $paymentStatus,
-                'notes' => $validated['notes'],
+                'notes' => $validated['notes'] ?? null,
             ]);
 
             foreach ($validated['items'] as $item) {

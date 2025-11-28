@@ -5,15 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Sale;
 use App\Models\Expense;
 use App\Models\Product;
-use App\Models\Client;
-use Illuminate\Support\Facades\DB;
+use App\Models\SaleItem;
+use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index() {
+    public function index(Request $request) 
+    {
         $today = now()->startOfDay();
         $thisMonth = now()->startOfMonth();
 
+        // Stats avec Eloquent scopes ou where simples
         $salesToday = Sale::whereDate('sale_date', $today)->sum('total');
         $expensesToday = Expense::whereDate('expense_date', $today)->sum('amount');
         $benefitToday = $salesToday - $expensesToday;
@@ -22,42 +25,61 @@ class DashboardController extends Controller
         $expensesMonth = Expense::where('expense_date', '>=', $thisMonth)->sum('amount');
         $benefitMonth = $salesMonth - $expensesMonth;
 
-        $criticalStock = Product::whereRaw('stock <= min_stock_alert')->count();
+        $criticalStock = Product::whereColumn('stock', '<=', 'min_stock_alert')->count();
         $totalDue = Sale::sum('amount_due');
 
-        $topProducts = DB::table('sale_items')
-            ->join('products', 'sale_items.product_id', '=', 'products.id')
-            ->select('products.name', DB::raw('SUM(sale_items.quantity) as total_sold'))
-            ->groupBy('products.id', 'products.name')
+        // Relations Eloquent pour top products
+        $topProductsQuery = SaleItem::with('product')
+            ->select('product_id')
+            ->selectRaw('SUM(quantity) as total_sold')
+            ->groupBy('product_id')
             ->orderByDesc('total_sold')
-            ->limit(5)
-            ->get();
+            ->limit(5);
+        
+        $topProductsData = $topProductsQuery->get();
+        $topProducts = [];
+        foreach ($topProductsData as $item) {
+            if ($item->product) {
+                $topProducts[$item->product->name] = $item->total_sold;
+            }
+        }
 
-        $salesByDay = DB::table('sales')
-            ->select(DB::raw('DATE(sale_date) as date'), DB::raw('SUM(total) as total'))
-            ->where('sale_date', '>=', now()->subDays(7))
+        // Sales by day avec Eloquent - 7 derniers jours
+        $salesByDay = Sale::where('sale_date', '>=', now()->subDays(7))
+            ->selectRaw('DATE(sale_date) as date, SUM(total) as total')
             ->groupBy('date')
             ->orderBy('date')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'total' => (string) $item->total,
+                ];
+            });
 
-        $expensesByCategory = DB::table('expenses')
-            ->join('expense_categories', 'expenses.category_id', '=', 'expense_categories.id')
-            ->select('expense_categories.name', DB::raw('SUM(expenses.amount) as total'))
-            ->where('expenses.expense_date', '>=', $thisMonth)
-            ->groupBy('expense_categories.id', 'expense_categories.name')
-            ->orderByDesc('total')
-            ->get();
+        // Expenses by category pour le graphique
+        $expensesByCategory = Expense::with('category')
+            ->where('expense_date', '>=', $thisMonth)
+            ->selectRaw('category_id, SUM(amount) as total')
+            ->groupBy('category_id')
+            ->get()
+            ->map(function ($expense) {
+                return [
+                    'name' => $expense->category ? $expense->category->name : 'Non catégorisé',
+                    'value' => (float) $expense->total,
+                ];
+            });
 
         return response()->json([
             'stats' => [
-                'sales_today' => $salesToday,
-                'expenses_today' => $expensesToday,
+                'sales_today' => (string) $salesToday,
+                'expenses_today' => (string) $expensesToday,
                 'benefit_today' => $benefitToday,
-                'sales_month' => $salesMonth,
-                'expenses_month' => $expensesMonth,
+                'sales_month' => (string) $salesMonth,
+                'expenses_month' => (string) $expensesMonth,
                 'benefit_month' => $benefitMonth,
                 'critical_stock' => $criticalStock,
-                'total_due' => $totalDue,
+                'total_due' => (string) $totalDue,
             ],
             'top_products' => $topProducts,
             'sales_by_day' => $salesByDay,
