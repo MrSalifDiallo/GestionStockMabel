@@ -10,28 +10,36 @@ class UserSeeder extends Seeder
 {
     public function run()
     {
-        User::create([
-            'name' => 'Mabel Admin',
-            'email' => 'admin@mabel.sn',
-            'password' => Hash::make('password123'),
-            'role' => 'admin',
-            'phone' => '+221 77 123 4567',
-        ]);
+        // Créer l'admin seulement s'il n'existe pas déjà
+        User::firstOrCreate(
+            ['email' => 'admin@mabel.sn'],
+            [
+                'name' => 'Mabel Admin',
+                'password' => Hash::make('password123'),
+                'role' => 'admin',
+                'phone' => '+221 77 123 4567',
+            ]
+        );
 
-        User::create([
-            'name' => 'Fatoumata Vendeur',
-            'email' => 'fatou@mabel.sn',
-            'password' => Hash::make('password123'),
-            'role' => 'seller',
-            'phone' => '+221 78 234 5678',
-        ]);
+        // Créer les vendeurs seulement s'ils n'existent pas
+        User::firstOrCreate(
+            ['email' => 'fatou@mabel.sn'],
+            [
+                'name' => 'Fatoumata Vendeur',
+                'password' => Hash::make('password123'),
+                'role' => 'seller',
+                'phone' => '+221 78 234 5678',
+            ]
+        );
 
-        User::create([
-            'name' => 'Aminata Vendeur',
-            'email' => 'aminata@mabel.sn',
-            'password' => Hash::make('password123'),
-            'role' => 'seller',
-            'phone' => '+221 79 345 6789',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'aminata@mabel.sn'],
+            [
+                'name' => 'Aminata Vendeur',
+                'password' => Hash::make('password123'),
+                'role' => 'seller',
+                'phone' => '+221 79 345 6789',
+            ]
+        );
     }
 }
