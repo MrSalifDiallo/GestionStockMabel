@@ -12,6 +12,9 @@ import Expenses from "./pages/Expenses";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import RegisterPage from "./pages/Auth/Register";
+import LoginPage from "./pages/Auth/Login";
+import ProtectedLayout from "@/components/layout/ProtectedLayout";
 
 const queryClient = new QueryClient();
 
@@ -23,14 +26,22 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/sales" element={<Sales />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/expenses" element={<Expenses />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {/* Routes publiques */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            
+            {/* TOUTES les routes PROTÉGÉES */}
+            <Route element={<ProtectedLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/sales" element={<Sales />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/expenses" element={<Expenses />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
+            
+            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
