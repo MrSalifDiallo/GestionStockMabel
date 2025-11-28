@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     AuthController,
@@ -12,6 +11,7 @@ use App\Http\Controllers\{
     SupplierController,
     DashboardController,
     ReportsController,
+    SettingController,
 };
 
 // Auth routes (sans auth)
@@ -32,9 +32,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Sales
     Route::apiResource('sales', SaleController::class);
+    Route::put('sales/{sale}/payment', [SaleController::class, 'addPayment']);
 
     // Clients
     Route::apiResource('clients', ClientController::class);
+    Route::post('clients/{client}/payments', [ClientController::class, 'addPayment']);
 
     // Expenses
     Route::apiResource('expenses', ExpenseController::class);
@@ -58,4 +60,10 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Reports
     Route::get('/reports', [ReportsController::class, 'index']);
+
+    // Settings
+    Route::get('/settings', [SettingController::class, 'index']);
+    Route::get('/settings/discount', [SettingController::class, 'getDiscountSettings']);
+    Route::put('/settings', [SettingController::class, 'update']);
+    Route::put('/settings/discount', [SettingController::class, 'updateDiscountSettings']);
 });

@@ -43,19 +43,46 @@ class ReportsController extends Controller
                 return $item->date; // Garder le format DATE() de MySQL
             });
 
-        // Fusionner les données
-        $salesTrend = $salesByDayRaw->map(function ($item) use ($expensesByDay) {
-            $dateKey = $item->date; // Format YYYY-MM-DD de MySQL
-            $depenses = isset($expensesByDay[$dateKey]) ? (float) $expensesByDay[$dateKey]->depenses : 0;
-            $ventes = (float) $item->ventes;
-            
-            return [
-                'date' => Carbon::parse($item->date)->format('d M'),
-                'ventes' => $ventes,
-                'benefices' => $ventes - $depenses, // Bénéfices = ventes - dépenses
-                'depenses' => $depenses,
+        // Créer un tableau de toutes les dates dans la plage pour avoir des données complètes
+        // Mais ne pas dépasser la date actuelle
+        $allDates = [];
+        $currentDate = $startDate->copy();
+        $today = Carbon::now();
+        
+        while ($currentDate->lte($endDate) && $currentDate->lte($today)) {
+            $dateKey = $currentDate->format('Y-m-d');
+            $allDates[$dateKey] = [
+                'date' => $currentDate->format('d M'),
+                'ventes' => 0,
+                'benefices' => 0,
+                'depenses' => 0,
             ];
-        });
+            $currentDate->addDay();
+        }
+
+        // Remplir avec les données réelles
+        foreach ($salesByDayRaw as $item) {
+            $dateKey = $item->date;
+            if (isset($allDates[$dateKey])) {
+                $allDates[$dateKey]['ventes'] = (float) $item->ventes;
+            }
+        }
+
+        foreach ($expensesByDay as $dateKey => $item) {
+            if (isset($allDates[$dateKey])) {
+                $allDates[$dateKey]['depenses'] = (float) $item->depenses;
+            }
+        }
+
+        // Calculer les bénéfices et convertir en collection
+        $salesTrend = collect($allDates)->map(function ($item) {
+            return [
+                'date' => $item['date'],
+                'ventes' => $item['ventes'],
+                'benefices' => $item['ventes'] - $item['depenses'],
+                'depenses' => $item['depenses'],
+            ];
+        })->values();
 
         // Top produits par revenus
         $topProductsRevenue = SaleItem::with('product')
@@ -110,35 +137,60 @@ class ReportsController extends Controller
 
     private function getDateRange($period, $dateFrom = null, $dateTo = null)
     {
+        $now = Carbon::now();
+        
         if ($period === 'custom' && $dateFrom && $dateTo) {
+            $endDate = Carbon::parse($dateTo);
+            // Ne pas dépasser la date actuelle
+            if ($endDate->isFuture()) {
+                $endDate = $now->copy();
+            }
             return [
                 Carbon::parse($dateFrom)->startOfDay(),
-                Carbon::parse($dateTo)->endOfDay(),
+                $endDate->endOfDay(),
             ];
         }
-
-        $now = Carbon::now();
         
         switch ($period) {
             case 'week':
+                $endDate = $now->copy()->endOfWeek();
+                // Ne pas dépasser la date actuelle
+                if ($endDate->isFuture()) {
+                    $endDate = $now->copy();
+                }
                 return [
                     $now->copy()->startOfWeek(),
-                    $now->copy()->endOfWeek(),
+                    $endDate,
                 ];
             case 'month':
+                $endDate = $now->copy()->endOfMonth();
+                // Ne pas dépasser la date actuelle
+                if ($endDate->isFuture()) {
+                    $endDate = $now->copy();
+                }
                 return [
                     $now->copy()->startOfMonth(),
-                    $now->copy()->endOfMonth(),
+                    $endDate,
                 ];
             case 'year':
+                $endDate = $now->copy()->endOfYear();
+                // Ne pas dépasser la date actuelle
+                if ($endDate->isFuture()) {
+                    $endDate = $now->copy();
+                }
                 return [
                     $now->copy()->startOfYear(),
-                    $now->copy()->endOfYear(),
+                    $endDate,
                 ];
             default:
+                $endDate = $now->copy()->endOfMonth();
+                // Ne pas dépasser la date actuelle
+                if ($endDate->isFuture()) {
+                    $endDate = $now->copy();
+                }
                 return [
                     $now->copy()->startOfMonth(),
-                    $now->copy()->endOfMonth(),
+                    $endDate,
                 ];
         }
     }
