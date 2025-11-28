@@ -4,11 +4,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     AuthController,
     ProductController,
+    ProductCategorieController,
     SaleController,
     ClientController,
     ExpenseController,
+    ExpenseCategorieController,
     SupplierController,
     DashboardController,
+    ReportsController,
 };
 
 // Auth routes (sans auth)
@@ -25,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Products
     Route::apiResource('products', ProductController::class);
     Route::get('products/stock-alerts', [ProductController::class, 'stockAlerts']);
+    Route::get('product-categories', [ProductCategorieController::class, 'index']);
 
     // Sales
     Route::apiResource('sales', SaleController::class);
@@ -34,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Expenses
     Route::apiResource('expenses', ExpenseController::class);
+    Route::get('expense-categories', [ExpenseCategorieController::class, 'index']);
 
     // Suppliers (Admin only)
     Route::middleware('role:admin')->group(function () {
@@ -49,5 +54,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index']);   
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    
+    // Reports
+    Route::get('/reports', [ReportsController::class, 'index']);
 });
