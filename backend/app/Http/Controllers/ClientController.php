@@ -96,4 +96,68 @@ class ClientController extends Controller
 
         return response()->json(null, 204);
     }
+
+    public function addPayment(Request $request, Client $client)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+        ]);
+
+        $paymentAmount = (float) $validated['amount'];
+        
+        // Calculer le total dû du client
+        $totalDue = (float) $client->total_due;
+        
+        // Vérifier que le montant ne dépasse pas le total dû
+        if ($paymentAmount > $totalDue) {
+            return response()->json([
+                'message' => 'Le montant ne peut pas dépasser le total dû',
+                'total_due' => $totalDue,
+            ], 422);
+        }
+
+        // Récupérer toutes les ventes impayées du client, triées par date
+        $unpaidSales = $client->sales()
+            ->where('amount_due', '>', 0)
+            ->orderBy('sale_date', 'asc')
+            ->get();
+
+        $remainingPayment = $paymentAmount;
+
+        // Distribuer le paiement sur les ventes impayées
+        foreach ($unpaidSales as $sale) {
+            if ($remainingPayment <= 0) {
+                break;
+            }
+
+            $saleAmountDue = (float) $sale->amount_due;
+            $paymentForThisSale = min($remainingPayment, $saleAmountDue);
+
+            $newAmountPaid = (float) $sale->amount_paid + $paymentForThisSale;
+            $newAmountDue = max(0, (float) $sale->total - $newAmountPaid);
+
+            $paymentStatus = $newAmountDue <= 0 ? 'paid' 
+                            : ($newAmountPaid > 0 ? 'partial' : 'pending');
+
+            $sale->update([
+                'amount_paid' => $newAmountPaid,
+                'amount_due' => $newAmountDue,
+                'payment_status' => $paymentStatus,
+            ]);
+
+            $remainingPayment -= $paymentForThisSale;
+        }
+
+        // Rafraîchir le client avec les nouvelles données
+        $client->load('sales');
+        $client->total_orders = $client->total_purchased;
+        $client->total_paid = $client->total_paid;
+        $client->total_due = $client->total_due;
+
+        return response()->json([
+            'message' => 'Paiement enregistré avec succès',
+            'client' => $client,
+            'payment_amount' => $paymentAmount,
+        ]);
+    }
 }

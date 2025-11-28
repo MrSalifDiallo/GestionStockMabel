@@ -69,7 +69,7 @@ class SaleController extends Controller
 
             $sale = Sale::create([
                 'invoice_number' => Sale::generateInvoiceNumber(),
-                'seller_id' => auth()->check() ? auth()->id() : null,
+                'seller_id' => $request->user() ? $request->user()->id : null,
                 'client_id' => $validated['client_id'] ?? null,
                 'client_name' => $validated['client_name'] ?? null,
                 'sale_date' => now(),
@@ -100,6 +100,43 @@ class SaleController extends Controller
 
             return response()->json($sale->load(['items.product']), 201);
         });
+    }
+
+    public function addPayment(Request $request, Sale $sale) {
+        $validated = $request->validate([
+            'amount_paid' => 'required|numeric|min:0',
+        ]);
+
+        $additionalAmount = (float) $validated['amount_paid'];
+        
+        // Convertir les valeurs de la vente en float pour les calculs
+        $currentAmountPaid = (float) $sale->amount_paid;
+        $currentAmountDue = (float) $sale->amount_due;
+        $saleTotal = (float) $sale->total;
+        
+        // Vérifier que le montant ne dépasse pas le reste à payer
+        if ($additionalAmount > $currentAmountDue) {
+            return response()->json([
+                'message' => 'Le montant ne peut pas dépasser le reste à payer',
+                'amount_due' => $currentAmountDue,
+            ], 422);
+        }
+
+        $newAmountPaid = $currentAmountPaid + $additionalAmount;
+        $amountDue = max(0, $saleTotal - $newAmountPaid);
+        
+        $paymentStatus = $newAmountPaid >= $saleTotal ? 'paid' 
+                        : ($newAmountPaid > 0 ? 'partial' : 'pending');
+
+        $sale->update([
+            'amount_paid' => $newAmountPaid,
+            'amount_due' => $amountDue,
+            'payment_status' => $paymentStatus,
+        ]);
+
+        // Recharger la vente avec les relations
+        $sale->refresh();
+        return response()->json($sale->load(['items.product', 'client', 'seller']));
     }
 
     public function destroy(Sale $sale) {
