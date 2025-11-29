@@ -1,0 +1,7 @@
+stages:
+  - test       # Étape de test
+
+test-repository-Backend:
+  stage: test
+  script:
+    - echo "Push detected in Backend repository"

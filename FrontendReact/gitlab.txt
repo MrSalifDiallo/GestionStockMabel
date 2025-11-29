@@ -1,0 +1,49 @@
+stages:
+  - test       # Étape de test
+  - build      # Étape de build
+  - deploy     # Étape de déploiement
+
+# Caching pour éviter de télécharger les modules à chaque build
+cache:
+  paths:
+    - node_modules/  # Cache les node_modules pour éviter de tout réinstaller à chaque fois
+    - .npm/           # Cache aussi le répertoire .npm pour accélérer les futures installations
+
+# Étape de test : exécute les tests unitaires de l'application
+test application:
+  stage: test
+  image: node:18  # Utilisation de l'image Docker Node.js version 18 (y'a pas mieux pour Node !)
+  script:
+    - npm ci  # Installe les dépendances de manière propre et rapide (remplace npm install)
+    - npm install vitest --save-dev  # Assure que Vitest est bien là pour les tests
+    - npm test  # Lance les tests définis dans package.json, histoire de vérifier que tout roule
+  only:
+    - main  # Cette étape se fait seulement sur la branche 'main', histoire de ne pas polluer les autres branches
+
+# Étape de build : prépare l'application pour le déploiement (génère le dossier 'dist' ou 'build')
+build application for netlify:
+  stage: build
+  image: node:18  # Encore l'image Docker Node.js version 18 (comme un chef)
+  script:
+    - npm ci  # Installe les dépendances de manière propre et rapide (remplace npm install)
+    - npm run build  # Lance la commande de build définie dans package.json pour préparer le site
+  artifacts:
+    paths:
+      - dist/  # Enregistre le dossier 'dist' pour le déploiement, tu ne veux pas perdre ton build !
+  cache:
+    key: build-cache  # Cache spécifique à la build, pratique quand il n'y a pas de changements
+    paths:
+      - node_modules/  # Cache les node_modules pour éviter des réinstallations inutiles à chaque build
+
+# Étape de déploiement : déploie l'application sur Netlifyb
+deploy on netlify:
+  stage: deploy
+  image: node:18  # Toujours Node.js, le meilleur copain des développeurs !
+  script:
+    - echo "NETLIFY_SITE_ID=$NETLIFY_SITE_ID"
+    - echo "NETLIFY_AUTH_TOKEN= $NETLIFY_AUTH_TOKEN"
+    - npm install netlify-cli -g  # Installe le Netlify CLI pour déployer ton site en un clin d'œil
+    - netlify deploy --dir dist --site $NETLIFY_SITE_ID --auth $NETLIFY_AUTH_TOKEN --prod 
+      --timeout 600 --message "Site Déployé avec Succès à la date du $(date)"  # Et hop, ton site est live !
+  only:
+    - main  # Pas de déploiement sur les autres branches, on garde ça propre et organisé

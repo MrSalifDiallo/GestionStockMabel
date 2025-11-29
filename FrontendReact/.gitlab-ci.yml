@@ -1,0 +1,7 @@
+stages:
+  - test       # Étape de test
+
+test-repository-FrontendReact:
+  stage: test
+  script:
+    - echo "Push detected in FrontendReact repository"
