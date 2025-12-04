@@ -23,3 +23,10 @@ Route::middleware('auth')->group(function () {
 /*Route::get('/{any}', function () {
     return redirect('http://localhost:5173');
 })->where('any', '.*');*/
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::get('/test', function () {
+    return view('test');
+});

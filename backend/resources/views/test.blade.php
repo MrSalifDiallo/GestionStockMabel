@@ -10,6 +10,6 @@
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
     </head>
     <body>
-        <h1>Welcome!</h1>
+        <h1>Hello, World!</h1>
     </body>
 </html>
