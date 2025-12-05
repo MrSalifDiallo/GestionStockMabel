@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
                 'name' => 'Mabel Admin',
                 'password' => Hash::make('password123'),
                 'role' => 'admin',
-                'phone' => '+221 77 123 4567',
+                'phone' => '+221 77 543 8297',
             ]
         );
 
