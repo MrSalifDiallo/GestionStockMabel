@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public bool $withinTransaction = false; // <<< ajoute cette ligne
+    //public bool $withinTransaction = false; // <<< ajoute cette ligne
 
     /**
      * Run the migrations.
